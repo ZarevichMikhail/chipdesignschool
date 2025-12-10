@@ -77,7 +77,9 @@ module lab_top
     logic [7:0] sample_data_sine;
     logic [7:0] sample_data_noise;
 
-    localparam freq = 440; // In Hz
+    //localparam freq = 440; // In Hz
+    localparam freq = 840; // In Hz
+    
     localparam bit [63:0] generator_freq =(((2**27) * freq)/(clk_mhz * 1000000))-1;
 
     audio_square inst_square
@@ -143,6 +145,9 @@ module lab_top
 
     end
 
-    assign sound = {1'd0, sound_mux, 7'd0};
+    assign sound = {6'd0, sound_mux, 2'd0};
+
+    // If you use nexys 7 board with integrated pcm sound, use following sound assignment
+    //assign sound = {2'd0, sound_mux, 6'd0};
 
 endmodule

@@ -1,32 +1,44 @@
 `include "config.svh"
 
+// Модуль и его название
+// top - Название главного модуля в иерархии
+// Зачем перед скобкой #?
 module lab_top
-# (
-    parameter  clk_mhz       = 50,
-               w_key         = 4,
-               w_sw          = 8,
+# ( // Блок параметров. Параметры позволяют настраивать модуль без изменения его кода. 
+    parameter  clk_mhz       = 50, // Задаёт частоту тактового сигнала (50 МГц).
+               w_key         = 4,  // Задают разрядность (шину) для кнопок, переключателей и светодиодов
+               w_sw          = 8,  // если не указан тип - по умолчанию wire 
                w_led         = 8,
-               w_digit       = 8,
-               w_gpio        = 100,
+               w_digit       = 8,  // Задаёт количество разрядов семисегментного индикатора.
+               w_gpio        = 100,  // Задаёт количество контактов общего назначения (GPIO).
 
                screen_width  = 640,
                screen_height = 480,
 
+            // разрядность каждого цветового канала
                w_red         = 4,
                w_green       = 4,
                w_blue        = 4,
-
+            
+            // Вычисление количества бит, необходимое для кодирования координат
+            // $clog2(N) возвращает минимальное целое число M, такое что 2^M >= N.
                w_x           = $clog2 ( screen_width  ),
                w_y           = $clog2 ( screen_height )
 )
+
+
+// В этом разделе объявляются все "ножки" модуля, через которые он взаимодействует
+// с внешним миром (другими модулями или физическими компонентами на плате).
 (
+	
+	// input - входной сигнал. 
     input                        clk,
     input                        slow_clk,
     input                        rst,
 
     // Keys, switches, LEDs
 
-    input        [w_key   - 1:0] key,
+    input        [w_key   - 1:0] key, // шина с кнопками 
     input        [w_sw    - 1:0] sw,
     output logic [w_led   - 1:0] led,
 
@@ -73,6 +85,11 @@ module lab_top
     wire a = key [0];
     wire b = key [1];
 
+    // Исключающее или xor
+    // 0 0 0
+    // 0 1 1
+    // 1 0 1
+    // 1 1 0
     wire result = a ^ b;
 
     assign led [0] = result;
@@ -94,7 +111,7 @@ module lab_top
 
     `endif
     */
-
+ 
     //------------------------------------------------------------------------
 
     // Exercise 1: Change the code below.
@@ -102,15 +119,15 @@ module lab_top
     //
     // If led [2] is not available on your board,
     // comment out the code above and reuse led [0].
-
-    // assign led [2] =
+    // Реализация xor через обычные функции 
+    assign led [2] = (~a&b)|(a&~b);
 
     // Exercise 2: Change the code below.
     // Assign to led [3] the result of XOR operation
     // without using "^" operation.
     // Use only operations "&", "|", "~" and parenthesis, "(" and ")".
 
-    // assign led [3] =
+    assign led [3] = ~ a & ~ b;
 
     // Exercise 3: Create an illustration to De Morgan's laws:
     //

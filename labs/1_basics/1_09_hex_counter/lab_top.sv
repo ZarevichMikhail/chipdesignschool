@@ -69,24 +69,68 @@ module lab_top
        assign uart_tx    = '1;
 
     //------------------------------------------------------------------------
+    
+    // --- ДОБАВЛЕНО: Логика для Задания 2 ---
+    // Детекторы отпускания (спадающего фронта) для кнопок 2 и 3.
+    
+    logic key2_prev, key3_prev;
+    logic key2_release_edge, key3_release_edge;
 
-    // Exercise 1. Synthesize the counter controlled by two keys.
-    // When one key is in pressed position - the frequency increases,
-    // when another key is in pressed position - the frequency decreases.
-    // Change the period increment / decrement and see what happens.
+    // Блок для запоминания предыдущего состояния кнопок
+    always_ff @ (posedge clk or posedge rst)
+        if (rst) begin
+            key2_prev <= 1'b0;
+            key3_prev <= 1'b0;
+        end else begin
+            key2_prev <= key[2];
+            key3_prev <= key[3];
+        end
+    
+    // Детектор отпускания: (было 1 (prev) И стало 0 (~key))
+    assign key2_release_edge = key2_prev & ~key[2]; // Кнопка 2: Уменьшить частоту вдвое
+    assign key3_release_edge = key3_prev & ~key[3]; // Кнопка 3: Удвоить частоту
+
+    //------------------------------------------------------------------------
 
     logic [31:0] period;
 
     localparam min_period = clk_mhz * 1000 * 1000 / 50,
-               max_period = clk_mhz * 1000 * 1000 *  3;
+               max_period = clk_mhz * 1000 * 1000 * 3;
 
+    // --- ОБЪЕДИНЕННЫЙ БЛОК УПРАВЛЕНИЯ 'period' ---
+    // Содержит логику для Задания 1 (key[0], key[1]) 
+    // и Задания 2 (key[2], key[3])
+    
     always_ff @ (posedge clk or posedge rst)
         if (rst)
-            period <= 32' ((min_period + max_period) / 2);
-        else if (key [0] & period != max_period)
+            period <= 32' ((min_period + max_period) / 2); // Сброс на среднее значение
+
+        // --- Задание 1 (Удержание кнопок 0 и 1) ---
+        else if (key [0] & period != max_period) // Кн. 0: Увеличить период (↓ частота)
             period <= period + 32'h1;
-        else if (key [1] & period != min_period)
+        else if (key [1] & period != min_period) // Кн. 1: Уменьшить период (↑ частота)
             period <= period - 32'h1;
+
+        // --- Задание 2 (Отпускание кнопок 2 и 3) ---
+        
+        // Кн. 2 (key[2]) отпущена -> уменьшить частоту вдвое (удвоить период)
+        else if (key2_release_edge)
+            if (period < (max_period / 2))
+                period <= period * 2;
+            else
+                period <= max_period; // Ограничиваем сверху
+        
+        // Кн. 3 (key[3]) отпущена -> удвоить частоту (уменьшить период вдвое)
+        else if (key3_release_edge)
+            if (period > (min_period * 2))
+                period <= period / 2;
+            else
+                period <= min_period; // Ограничиваем снизу
+
+    //------------------------------------------------------------------------
+    
+    // Этот код остается без изменений. Он использует 'period' для
+    // управления скоростью счета cnt_2.
 
     logic [31:0] cnt_1;
 

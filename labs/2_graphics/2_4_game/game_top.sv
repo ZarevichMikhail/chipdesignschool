@@ -83,6 +83,7 @@ module game_top
 
     game_sprite_top
     #(
+        // Ширина и высота цели 
         .SPRITE_WIDTH  ( 8 ),
         .SPRITE_HEIGHT ( 8 ),
 
@@ -171,6 +172,8 @@ module game_top
     assign sprite_torpedo_write_x  = screen_width / 2 + random [15:10];
     assign sprite_torpedo_write_y  = screen_height - 16;
 
+
+    // Тут, видимо, изменяется скорость движения 
     always_comb
     begin
         case (left_right_keys)

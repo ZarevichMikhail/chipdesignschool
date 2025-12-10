@@ -84,6 +84,9 @@ module lab_top
     );
 
 
-    assign sound = {1'd0, sample_data, 7'd0};
+    assign sound = {6'd0, sample_data, 2'd0};
+
+    // If you use nexys 7 board with integrated pcm sound, use following sound assignment
+    //assign sound = {2'd0, sample_data, 6'd0};
 
 endmodule

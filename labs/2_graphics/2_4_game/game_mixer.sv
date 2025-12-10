@@ -28,6 +28,7 @@ module game_mixer
         else if (sprite_target_rgb_en)
             rgb <= sprite_target_rgb;
         else
+            // Изображение по умолчанию 
             rgb <= 3'b000;
 
 endmodule

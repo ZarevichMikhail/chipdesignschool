@@ -80,6 +80,8 @@ module lab_top
 
     // seven_segment_display # (w_digit)
     // i_7segment (.number (w_number' (mic)), .*);
+    
+    //seven_segment_display i_7segment (.number (w_number' (mic)), .*);
 
     //------------------------------------------------------------------------
     //
@@ -285,6 +287,7 @@ module lab_top
     //
     //------------------------------------------------------------------------
 
+    // Чтобы задания заработали, нужно закомментировать это
     always_ff @ (posedge clk or posedge rst)
         if (rst)
             abcdefgh <= 8'b00000000;

@@ -2,7 +2,7 @@
 
 module game_sprite_top
 #(
-    parameter SPRITE_WIDTH  = 8,
+    parameter SPRITE_WIDTH  = 8, // Ширина и высота двигающейся цели 
               SPRITE_HEIGHT = 8,
 
               DX_WIDTH      = 2,  // X speed width in bits

@@ -74,18 +74,43 @@ module lab_top
     // How do you change the speed of LED blinking?
     // Try different bit slices to display.
 
-    localparam w_cnt = $clog2 (clk_mhz * 1000 * 1000);
+    //localparam w_cnt = $clog2 (clk_mhz * 1000 * 1000);
+    // +3 увеличивает разрядность счётчика
+    // Дальше возьмём самые старшие из них, чтобы светодидоды мигали медленнее
+    // если взять, например 15:8 то мигать будет очень быстро 
+    // так что светодиоды будут гореть всегда.
+    
+    // localparam - объявление константы
+    // $clog2 - вычисление, сколько бит нужно, чтобы посчитать до 50*10^6
 
+    /*
+    localparam w_cnt = $clog2 (clk_mhz * 1000 * 1000)+3;
+
+    // Объявление счётчика
     logic [w_cnt - 1:0] cnt;
 
+    // always_ff описывает последовательную логику, то есть то, что хранится в триггерах
+    // Срабатывает только когда меняется сигнал в скобках
+    // запоминает своё предыдущеп состояние 
+    // posedge - positive edge - фронт сигнала clk
+    // negedgse - negative edge - срез
     always_ff @ (posedge clk or posedge rst)
-        if (rst)
+        if (rst) // Если сигнал сброса, то значение счётчика сбросится в 0
             cnt <= '0;
-        else
+        else // Иначе при тактовом сигнале значение счётчика увеличивается
             cnt <= cnt + 1'd1;
 
+    // На светодиоды выводится диапазон разрядов счётчика. 
+    // Чем больше индекс разряда, тем с меньшей частотой мигает светодиод. 
+    // Тут мы берём самые старшие биты счётчика, так что светодиоды мигают медленнее всего
     assign led = cnt [$left (cnt) -: w_led];
 
+    */
+    //assign led = cnt [$left (cnt) -: w_led];
+    //assign led = cnt [15:8];
+
+    
+    
     // Exercise 2: Key-controlled counter.
     // Comment out the code above.
     // Uncomment and synthesize the code below.
@@ -98,10 +123,26 @@ module lab_top
     // 2. Two counters controlled by different keys
     // displayed in different groups of LEDs.
 
+    
+    
+    // any key - счётчик сдвигается по нажатию на любую кнопку 
+    //wire any_key = | key;
+
+
+   // Моё решение задания
+   
+    wire inc_key = key[0];
+    wire dec_key = key[1];
+
+
+    logic inc_key_r;
+    logic dec_key_r;
+    
+    
+    
+    // Код, который был по умолчанию 
     /*
-
-    wire any_key = | key;
-
+    
     logic any_key_r;
 
     always_ff @ (posedge clk or posedge rst)
@@ -109,19 +150,57 @@ module lab_top
             any_key_r <= '0;
         else
             any_key_r <= any_key;
+    */
+    //wire any_key_pressed = ~ any_key & any_key_r;
+    
+    // Моё решение задания
+    
+    always_ff @(posedge clk or posedge rst)
+    begin
+        if (rst)
+        begin
+            inc_key_r <= '0;
+            dec_key_r <= '0;
+        end
+        else
+        begin
+            inc_key_r <= inc_key;
+            dec_key_r <= dec_key;
+        end
+    end
 
-    wire any_key_pressed = ~ any_key & any_key_r;
+    // Флаги нажатия кнопок
+    wire inc_key_pressed = ~ inc_key & inc_key_r;
+    wire dec_key_pressed = ~ dec_key & dec_key_r;
+
 
     logic [w_led - 1:0] cnt;
+    
 
+    // Код, который был по умолчанию
+    /*
     always_ff @ (posedge clk or posedge rst)
         if (rst)
             cnt <= '0;
         else if (any_key_pressed)
             cnt <= cnt + 1'd1;
+    */
+
+
+    
+    always_ff @(posedge clk or posedge rst)
+    begin
+        if (rst)
+            cnt <= '0;
+        else if (inc_key_pressed)
+            cnt <= cnt + 1'd1; // Инкрементируем счётчик
+        else if (dec_key_pressed && cnt > 0)
+            cnt <= cnt - 1'd1; // Декрементируем счётчик, если он не равен нулю
+    end
+
 
     assign led = w_led' (cnt);
-
-    */
+    
+    
 
 endmodule

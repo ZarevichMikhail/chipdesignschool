@@ -100,7 +100,7 @@ module lab_top
         else             enc0 = 2'd0;
 
     // Implementation 2. Priority encoder using casez
-
+    
     always_comb
         casez (in)
         3'b??1:  enc1 = 2'd0;
