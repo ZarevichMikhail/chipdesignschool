@@ -7,11 +7,13 @@
 // which produces 8-bit result
 
 module signed_mul_4
-(
+( 
+   // signed - числа в дополнительном коде. 
   input  signed [3:0] a, b,
   output signed [7:0] res
 );
 
+    // Умножение * автоматически подстраивается под знаковое и беззнаковое число.  
   assign res = a * b;
 
 endmodule
@@ -24,11 +26,11 @@ module unsigned_mul
 # (
   parameter n = 8
 )
-(
+(   // беззнаковое число 
   input  [    n - 1:0] a, b,
   output [2 * n - 1:0] res
 );
-
+    // Умножение работает как для беззнакового. 
   assign res = a * b;
 
 endmodule
@@ -48,9 +50,28 @@ module signed_or_unsigned_mul
   parameter n = 8
 )
 (
+    // На вход подаются беззнаковые числа. 
   input  [    n - 1:0] a, b,
   input                signed_mul,
   output [2 * n - 1:0] res
 );
+
+
+    logic [2 * n - 1:0] logic_res;
+    assign res = logic_res;
+
+    always_comb begin
+        
+        if(signed_mul == 1) begin
+            // $signed() - функция преобразования числа в signed
+            logic_res = $signed(a) * $signed(b);
+
+        end else begin
+            logic_res = a * b;
+
+        end
+    end
+
+
 
 endmodule

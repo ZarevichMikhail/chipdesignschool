@@ -87,4 +87,97 @@ module sort_three_floats (
     // and usually equal to the bit width of the double-precision floating-point number, FP64, 64 bits.
 
 
+
+    // Нужно сначала сравнить 0 и 1
+    // большее из них сравниваем с 2, получаем самое большое число. 
+
+    // Затем меньшее число из второго сравнения сравниваем с первым,
+    // чтобы получить самое маленькое. 
+
+    // TODO:
+    // Не знаю, как тут сделать более оптимизированный вариант. 
+    // когда мы сравниваем число с 2, может быть так, что 2 - самое большое
+    // и тогда снова придётся сравнивать 0 и 1. 
+    // Надо добавить проверку на это. 
+
+
+    // Сигналы ошибок для каждого сравнения
+    logic err1, err2, err3;
+    assign err = err1 | err2 | err3;
+
+    // Результаты сравнения
+    logic u0_less_or_equal_u1;
+    logic u1_less_or_equal_u2;
+    logic u0_less_or_equal_u2;
+    
+    // Промежуточные переменные для хранения значений после перестановок
+    logic [FLEN - 1:0] min_01, max_01;
+    logic [FLEN - 1:0] mid_temp;
+
+    
+    // Сравнение 0 и 1
+    f_less_or_equal cmp1 (
+        .a   ( unsorted[0] ),
+        .b   ( unsorted[1] ),
+        .res ( u0_less_or_equal_u1 ),
+        .err ( err1        )
+    );
+
+    always_comb begin
+        if (u0_less_or_equal_u1 == 1) begin
+            min_01 = unsorted[0];
+            max_01 = unsorted[1];
+        end else begin
+            min_01 = unsorted[1];
+            max_01 = unsorted[0];
+        end
+    end
+
+   
+   
+    // Сравнение большего из этих чисел с 2
+    f_less_or_equal cmp2 (
+        .a   ( max_01      ),
+        .b   ( unsorted[2] ),
+        .res ( u1_less_or_equal_u2      ),
+        .err ( err2        )
+    );
+
+    always_comb begin
+        if (u1_less_or_equal_u2 == 1) begin 
+            mid_temp  = max_01;       // max_01 меньше unsorted[2]
+            sorted[2] = unsorted[2];  // Значит unsorted[2] - самый большой
+        end else begin
+            mid_temp  = unsorted[2];  // unsorted[2] меньше max_01
+            sorted[2] = max_01;       // Значит max_01 - самый большой
+        end
+    end
+
+    
+    // Третье сравнение 
+    // Меньшее из второго сравнивается с первым
+    // Тут может быть так, что мы снова сравниваем первые два числа. 
+    f_less_or_equal cmp3 (
+        .a   ( min_01   ),
+        .b   ( mid_temp ),
+        .res ( u0_less_or_equal_u2   ),
+        .err ( err3     )
+    );
+
+    always_comb begin
+        if (u0_less_or_equal_u2 == 1) begin
+            sorted[0] = min_01;
+            sorted[1] = mid_temp;
+        end else begin
+            sorted[0] = mid_temp;
+            sorted[1] = min_01;
+        end
+    end
+
+
+
+
+
+
+
 endmodule
