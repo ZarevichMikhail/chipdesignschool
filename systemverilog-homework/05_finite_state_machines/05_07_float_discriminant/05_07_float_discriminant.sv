@@ -80,6 +80,47 @@ module float_discriminant (
                     end
                 end
 
+                COMPUTING: begin // Состояния автомата 
+    typedef enum logic [1:0] {
+        INITIAL   = 2'b00,
+        COMPUTING = 2'b01,
+        DONE      = 2'b10
+    } state_e;
+
+    state_e state;
+    real r_a, r_b, r_c, r_res;
+
+    // Функция для проверки на NaN или Inf (все биты экспоненты равны 1) 
+    // function logic is_special(logic [63:0] f);
+    //     // Для FP64 экспонента — это биты [62:52] (11 бит) [cite: 81, 127]
+    //     return (&f[62:52]); 
+    // endfunction
+    
+    // Функция из тестбенча
+    function is_err ( [FLEN - 1:0] a_bits );
+        return a_bits [FLEN - 2 -: NE] === '1;
+    endfunction
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            state        <= INITIAL;
+            busy         <= 1'b0;
+            res_vld      <= 1'b0;
+            err          <= 1'b0;
+            res          <= '0;
+            res_negative <= 1'b0;
+        end else begin
+            res_vld <= 1'b0;
+
+            case (state)
+                INITIAL: begin
+                    if (arg_vld) begin
+                        busy  <= 1'b1;
+                        
+                        state <= COMPUTING;
+                    end
+                end
+
                 COMPUTING: begin
                     // Проверка на NaN и Inf 
                     err <= is_err(a) | is_err(b) | is_err(c);

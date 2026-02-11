@@ -122,34 +122,57 @@ module lab_top
         end
 
 
+
     // Input data pipeline
 
     // Exercise: 1) remove unnecessary resets here to reduce ASIC area
     //           2) use clock gating to reduce pipeline power consumption
 
-    always_ff @ (posedge slow_clk or posedge rst)
-        if (rst)
-            input_stage_0_ff <= '0;
-        else
+    // если только posedge clk - синхронный ресет
+    // always_ff @ (posedge slow_clk or posedge rst) // асинхронный ресет 
+    always_ff @ (posedge slow_clk)
+
+        // Этот момент не понял.
+        // На схеме, которая в лекции,
+        // на самый первый вход input_stage_0_ff не приходит сигнал валидности
+        // В ответах сказано написать так, но я не понимаю,что это даст
+        // if (key[0])
+        if (data_valid_stage_0_ff)
             input_stage_0_ff <= sw;
+        // if (rst)
+        //     input_stage_0_ff <= '0;
+        // else
+        //     input_stage_0_ff <= sw;
 
-    always_ff @ (posedge slow_clk or posedge rst)
-        if (rst)
-            input_stage_1_ff <= '0;
-        else
+    // always_ff @ (posedge slow_clk or posedge rst)
+    always_ff @ (posedge slow_clk)
+        if (data_valid_stage_0_ff)
             input_stage_1_ff <= input_stage_0_ff;
+        
+        // if (rst)
+        //     input_stage_1_ff <= '0;
+        // else
+        //     input_stage_1_ff <= input_stage_0_ff;
 
-    always_ff @ (posedge slow_clk or posedge rst)
-        if (rst)
-            input_stage_2_ff <= '0;
-        else
+    // always_ff @ (posedge slow_clk or posedge rst)
+    always_ff @ (posedge slow_clk)
+
+        if (data_valid_stage_1_ff)
             input_stage_2_ff <= input_stage_1_ff;
+        // if (rst)
+        //     input_stage_2_ff <= '0;
+        // else
+        //     input_stage_2_ff <= input_stage_1_ff;
 
-    always_ff @ (posedge slow_clk or posedge rst)
-        if (rst)
-            input_stage_3_ff <= '0;
-        else
+    // always_ff @ (posedge slow_clk or posedge rst)
+    always_ff @ (posedge slow_clk)
+
+        if (data_valid_stage_2_ff)
             input_stage_3_ff <= input_stage_2_ff;
+        // if (rst)
+        //     input_stage_3_ff <= '0;
+        // else
+        //     input_stage_3_ff <= input_stage_2_ff;
 
 
     // Multiply numbers
@@ -162,29 +185,41 @@ module lab_top
     // Exercise: 1) remove unnecessary resets here to reduce ASIC area
     //           2) use clock gating to reduce pipeline power consumption
 
-    always_ff @ (posedge slow_clk or posedge rst)
-        if (rst)
-            pow_data_stage_1_ff <= '0;
-        else
+    // always_ff @ (posedge slow_clk or posedge rst)
+    always_ff @ (posedge slow_clk)
+        if (data_valid_stage_0_ff)
             pow_data_stage_1_ff <= pow_mul_stage_1;
+        // if (rst)
+        //     pow_data_stage_1_ff <= '0;
+        // else
+        //     pow_data_stage_1_ff <= pow_mul_stage_1;
 
-    always_ff @ (posedge slow_clk or posedge rst)
-        if (rst)
-            pow_data_stage_2_ff <= '0;
-        else
+    // always_ff @ (posedge slow_clk or posedge rst)
+    always_ff @ (posedge slow_clk)
+        if (data_valid_stage_1_ff)
             pow_data_stage_2_ff <= pow_mul_stage_2;
+        // if (rst)
+        //     pow_data_stage_2_ff <= '0;
+        // else
+        //     pow_data_stage_2_ff <= pow_mul_stage_2;
 
-    always_ff @ (posedge slow_clk or posedge rst)
-        if (rst)
-            pow_data_stage_3_ff <= '0;
-        else
+    // always_ff @ (posedge slow_clk or posedge rst)
+    always_ff @ (posedge slow_clk)
+        if (data_valid_stage_2_ff)
             pow_data_stage_3_ff <= pow_mul_stage_3;
+        // if (rst)
+        //     pow_data_stage_3_ff <= '0;
+        // else
+        //     pow_data_stage_3_ff <= pow_mul_stage_3;
 
-    always_ff @ (posedge slow_clk or posedge rst)
-        if (rst)
-            pow_data_stage_4_ff <= '0;
-        else
+    // always_ff @ (posedge slow_clk or posedge rst)
+    always_ff @ (posedge slow_clk)
+        if (data_valid_stage_3_ff)
             pow_data_stage_4_ff <= pow_mul_stage_4;
+        // if (rst)
+        //     pow_data_stage_4_ff <= '0;
+        // else
+        //     pow_data_stage_4_ff <= pow_mul_stage_4;
 
 
     assign pow_output_valid = data_valid_stage_4_ff;
