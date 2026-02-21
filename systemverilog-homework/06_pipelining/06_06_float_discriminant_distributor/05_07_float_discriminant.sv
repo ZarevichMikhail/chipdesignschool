@@ -31,4 +31,39 @@ module float_discriminant (
     // and usually equal to the bit width of the double-precision floating-point number, FP64, 64 bits.
 
 
+
+    real ra, rb, rc, rd;
+
+    always @(posedge clk) begin
+        if (rst) begin
+            res_vld <= 1'b0;
+            res <= 0;
+            res_negative <= 1'b0;
+            err <= 1'b0;
+            busy <= 1'b0;
+        end else begin
+            res_vld <= 1'b0;
+            busy <= 1'b0;
+
+            if (arg_vld) begin
+                busy <= 1'b1;
+
+                // Assign to real variables
+                ra = $bitstoreal(a);
+                rb = $bitstoreal(b);
+                rc = $bitstoreal(c);
+                rd = rb * rb - 4.0 * ra * rc;
+
+                res <= $realtobits(rd);
+
+                // Error: exponent all ones
+                err <= res[FLEN-2 -: NE] == {NE{1'b1}};
+
+                // Negative: sign=1, non-zero, not error
+                res_negative <= res[FLEN-1] && (res != 0) && ~err;
+
+                res_vld <= 1'b1;
+            end
+        end
+    end
 endmodule
