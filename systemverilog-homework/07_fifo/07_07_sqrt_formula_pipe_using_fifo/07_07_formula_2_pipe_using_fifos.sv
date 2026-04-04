@@ -42,165 +42,108 @@ module formula_2_pipe_using_fifos
     // You can download this issue from https://fpga-systems.ru/fsm
 
 
-localparam PIPE_DEPTH = 16;
-
-    //------------------------------------------------------------------------
-    // First isqrt module (computes sqrt(c))
-    //------------------------------------------------------------------------
-    wire [15:0] sqrt_c;
+     // =========================================================
+    // СТАДИЯ 1: Вычисляем isqrt(c), задерживаем 'a' и 'b'
+    // =========================================================
     wire        vld_c;
-    
-    isqrt #(.n_pipe_stages(PIPE_DEPTH)) isqrt_c_inst (
-        .clk    (clk),
-        .rst    (rst),
-        .x_vld  (arg_vld),
-        .x      (c),
-        .y_vld  (vld_c),
-        .y      (sqrt_c)
+    wire [15:0] res_c;
+
+    isqrt i_isqrt_c (
+        .clk   (clk),
+        .rst   (rst),
+        .x_vld (arg_vld),
+        .x     (c),
+        .y_vld (vld_c),
+        .y     (res_c)
     );
 
-    //------------------------------------------------------------------------
-    // FIFO for b (Delay: PIPE_DEPTH = 16 cycles)
-    //------------------------------------------------------------------------
-    reg [31:0] b_fifo [0:31];
-    reg [4:0]  b_wr_ptr;
-    reg [4:0]  b_rd_ptr;
-    
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            b_wr_ptr <= 5'b0;
-            b_rd_ptr <= 5'b0;
-        end else begin
-            if (arg_vld) b_wr_ptr <= b_wr_ptr + 5'b1;
-            if (vld_c)   b_rd_ptr <= b_rd_ptr + 5'b1;
-        end
-    end
-    
-    always @(posedge clk) begin
-        if (arg_vld) b_fifo[b_wr_ptr] <= b;
-    end
-    
-    wire [31:0] b_out = b_fifo[b_rd_ptr];
+    wire [31:0] a_stg1;
+    wire [31:0] b_stg1;
 
-    //------------------------------------------------------------------------
-    // Second isqrt module input stage
-    //------------------------------------------------------------------------
-    reg [31:0] b_plus_sqrt_c;
-    reg        v_b;
-    
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            v_b <= 1'b0;
-            b_plus_sqrt_c <= 32'b0;
-        end else begin
-            v_b <= vld_c;
-            if (vld_c) begin
-                b_plus_sqrt_c <= b_out + {16'b0, sqrt_c};
-            end
-        end
-    end
+    // Очередь для задержки аргумента 'a' на время вычисления isqrt(c)
+    flip_flop_fifo_with_counter #(
+        .width (32),
+        .depth (32)
+    ) i_fifo_a_stg1 (
+        .clk        (clk),
+        .rst        (rst),
+        .push       (arg_vld),
+        .write_data (a),
+        .pop        (vld_c), // Достаем, когда готов корень из c
+        .read_data  (a_stg1),
+        .empty      (),
+        .full       ()
+    );
 
-    //------------------------------------------------------------------------
-    // Second isqrt module (computes sqrt(b + sqrt(c)))
-    //------------------------------------------------------------------------
-    wire [15:0] sqrt_b_plus_c;
+    // Очередь для задержки аргумента 'b' на время вычисления isqrt(c)
+    flip_flop_fifo_with_counter #(
+        .width (32),
+        .depth (32)
+    ) i_fifo_b_stg1 (
+        .clk        (clk),
+        .rst        (rst),
+        .push       (arg_vld),
+        .write_data (b),
+        .pop        (vld_c), // Достаем, когда готов корень из c
+        .read_data  (b_stg1),
+        .empty      (),
+        .full       ()
+    );
+
+    // =========================================================
+    // СТАДИЯ 2: Вычисляем isqrt(b + res_c), задерживаем 'a' еще раз
+    // =========================================================
+    wire [31:0] sum_b_c = b_stg1 + 32'(res_c);
+    
     wire        vld_b;
-    
-    isqrt #(.n_pipe_stages(PIPE_DEPTH)) isqrt_b_inst (
-        .clk    (clk),
-        .rst    (rst),
-        .x_vld  (v_b),
-        .x      (b_plus_sqrt_c),
-        .y_vld  (vld_b),
-        .y      (sqrt_b_plus_c)
+    wire [15:0] res_b;
+
+    isqrt i_isqrt_b (
+        .clk   (clk),
+        .rst   (rst),
+        .x_vld (vld_c), // Запускаем, когда пришел vld от первой стадии
+        .x     (sum_b_c),
+        .y_vld (vld_b),
+        .y     (res_b)
     );
 
-    //------------------------------------------------------------------------
-    // FIFO for a (Delay: 2*PIPE_DEPTH + 1 = 33 cycles)
-    //------------------------------------------------------------------------
-    reg [31:0] a_fifo [0:63];
-    reg [5:0]  a_wr_ptr;
-    reg [5:0]  a_rd_ptr;
-    
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            a_wr_ptr <= 6'b0;
-            a_rd_ptr <= 6'b0;
-        end else begin
-            if (arg_vld) a_wr_ptr <= a_wr_ptr + 6'b1;
-            if (vld_b)   a_rd_ptr <= a_rd_ptr + 6'b1;
-        end
-    end
-    
-    always @(posedge clk) begin
-        if (arg_vld) a_fifo[a_wr_ptr] <= a;
-    end
-    
-    wire [31:0] a_out = a_fifo[a_rd_ptr];
+    wire [31:0] a_stg2;
 
-    //------------------------------------------------------------------------
-    // Third isqrt module input stage
-    //------------------------------------------------------------------------
-    reg [31:0] a_plus_sqrt_b_plus_c;
-    reg        v_a;
-    
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            v_a <= 1'b0;
-            a_plus_sqrt_b_plus_c <= 32'b0;
-        end else begin
-            v_a <= vld_b;
-            if (vld_b) begin
-                a_plus_sqrt_b_plus_c <= a_out + {16'b0, sqrt_b_plus_c};
-            end
-        end
-    end
-
-    //------------------------------------------------------------------------
-    // Third isqrt module (computes final result)
-    //------------------------------------------------------------------------
-    wire [15:0] final_sqrt;
-    wire        vld_final;
-    
-    isqrt #(.n_pipe_stages(PIPE_DEPTH)) isqrt_a_inst (
-        .clk    (clk),
-        .rst    (rst),
-        .x_vld  (v_a),
-        .x      (a_plus_sqrt_b_plus_c),
-        .y_vld  (vld_final),
-        .y      (final_sqrt)
+    // Перекладываем 'a' во вторую очередь, чтобы подождать вычисления isqrt(b + ...)
+    flip_flop_fifo_with_counter #(
+        .width (32),
+        .depth (32)
+    ) i_fifo_a_stg2 (
+        .clk        (clk),
+        .rst        (rst),
+        .push       (vld_c), // Записываем в момент готовности первой стадии
+        .write_data (a_stg1),
+        .pop        (vld_b), // Достаем, когда готов корень из суммы с b
+        .read_data  (a_stg2),
+        .empty      (),
+        .full       ()
     );
 
-    //------------------------------------------------------------------------
-    // Output stage
-    //------------------------------------------------------------------------
-    reg [31:0] res_reg;
-    reg        v_out;
+    // =========================================================
+    // СТАДИЯ 3: Вычисляем финальный isqrt(a + res_b)
+    // =========================================================
+    wire [31:0] sum_a_b = a_stg2 + 32'(res_b);
     
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            v_out <= 1'b0;
-            res_reg <= 32'b0;
-        end else begin
-            v_out <= vld_final;
-            if (vld_final) begin
-                res_reg <= {16'b0, final_sqrt};
-            end
-        end
-    end
-    
-    assign res_vld = v_out;
-    assign res = res_reg;
+    wire        vld_a;
+    wire [15:0] res_a;
 
+    isqrt i_isqrt_a (
+        .clk   (clk),
+        .rst   (rst),
+        .x_vld (vld_b), // Запускаем от сигнала второй стадии
+        .x     (sum_a_b),
+        .y_vld (vld_a),
+        .y     (res_a)
+    );
 
-
-
-
-
-
-
-
-
+    // Выдаем финальный результат
+    assign res_vld = vld_a;
+    assign res     = 32'(res_a);
 
 
 endmodule

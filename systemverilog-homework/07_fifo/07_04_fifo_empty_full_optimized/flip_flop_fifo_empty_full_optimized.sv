@@ -53,7 +53,25 @@ module flip_flop_fifo_empty_full_optimized
     //------------------------------------------------------------------------
 
     // TODO: Add logic for rd_ptr
-
+     always_ff @ (posedge clk or posedge rst)
+        if (rst)
+        begin
+            rd_ptr <= '0;
+            rd_ptr_odd_circle <= 1'b0;
+        end
+        else if (pop)
+        begin
+            // Если достигли конца буфера, обнуляем указатель и инвертируем бит круга
+            if (rd_ptr == max_ptr)
+            begin
+                rd_ptr <= '0;
+                rd_ptr_odd_circle <= ~ rd_ptr_odd_circle;
+            end
+            else
+            begin
+                rd_ptr <= rd_ptr + 1'b1;
+            end
+        end
     //------------------------------------------------------------------------
 
     always_ff @ (posedge clk)

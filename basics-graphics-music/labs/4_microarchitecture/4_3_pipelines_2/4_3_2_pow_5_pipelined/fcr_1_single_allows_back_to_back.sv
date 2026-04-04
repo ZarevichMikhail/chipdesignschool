@@ -11,6 +11,7 @@ module fcr_1_single_allows_back_to_back
 # (
     parameter w = 0
 )
+
 (
     input                  clk,
     input                  rst,

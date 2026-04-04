@@ -99,5 +99,40 @@ module circular_buffer_with_valid
     // with support for valid interface. A module should move
     // the pointer only in cases of valid data transfer.
 
+    localparam pointer_width = $clog2 (depth);
+    localparam [pointer_width - 1:0] max_ptr = pointer_width' (depth - 1);
+
+    logic [pointer_width - 1:0] ptr;
+    
+    // Создаем два массива: один для данных, другой для флагов валидности
+    logic [width - 1:0] data       [0: depth - 1];
+    logic               valid_data [0: depth - 1];
+
+    integer i;
+
+    always_ff @ (posedge clk or posedge rst) begin
+        if (rst) begin
+            ptr <= '0;
+            // При сбросе очищаем и указатель, и сами массивы памяти (Пример 3)
+            for (i = 0; i < depth; i = i + 1) begin
+                data[i]       <= '0;
+                valid_data[i] <= 1'b0;
+            end
+        end else begin
+            // Указатель движется каждый такт по кругу
+            ptr <= (ptr == max_ptr) ? '0 : ptr + 1'b1;
+            
+            // Записываем входящие данные и их статус валидности по текущему адресу
+            data[ptr]       <= in_data;
+            valid_data[ptr] <= in_valid;
+        end
+    end
+
+    // Чтение происходит асинхронно (комбинаторно) по тому же указателю ptr.
+    // Поскольку неблокирующее присваивание (<=) обновит память только в конце такта,
+    // прямо сейчас мы читаем "старые" данные, которые были записаны ровно depth тактов назад.
+    assign out_data  = data[ptr];
+    assign out_valid = valid_data[ptr];
+
 
 endmodule
