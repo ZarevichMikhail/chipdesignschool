@@ -23,7 +23,9 @@ module sr_decode
     output       [ 6:0] cmdF7,
     output logic [31:0] immI,
     output logic [31:0] immB,
-    output logic [31:0] immU
+    output logic [31:0] immU,
+    output logic [31:0] immJ // Новый порт
+
 );
     assign cmdOp = instr [ 6: 0];
     assign rd    = instr [11: 7];
@@ -58,5 +60,17 @@ module sr_decode
         immU [11: 0] = 12'b0;
         immU [31:12] = instr [31:12];
     end
+
+    // J-type
+    
+    always_comb
+    begin
+        immJ [    0] = 1'b0;
+        immJ [10: 1] = instr [30:21];
+        immJ [   11] = instr [20];
+        immJ [19:12] = instr [19:12];
+        immJ [31:20] = { 12 { instr [31] } };
+    end
+
 
 endmodule

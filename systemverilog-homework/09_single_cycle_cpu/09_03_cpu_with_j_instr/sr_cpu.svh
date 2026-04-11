@@ -23,6 +23,8 @@
 
 // Instruction opcode
 
+`define RVOP_JAL    7'b1101111   // Инструкция jal
+
 `define RVOP_ADDI   7'b0010011
 `define RVOP_BEQ    7'b1100011
 `define RVOP_LUI    7'b0110111

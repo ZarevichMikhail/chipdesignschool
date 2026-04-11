@@ -21,8 +21,9 @@ module sr_control
     output              pcSrc,
     output logic        regWrite,
     output logic        aluSrc,
-    output logic        wdSrc,
-    output logic [ 2:0] aluControl
+    output logic [ 1:0] wdSrc,  // Расширил до 2 бит
+    output logic [ 2:0] aluControl,
+    output logic        jump    // Новый порт прыжка
 );
     logic          branch;
     logic          condZero;
@@ -34,8 +35,9 @@ module sr_control
         condZero    = 1'b0;
         regWrite    = 1'b0;
         aluSrc      = 1'b0;
-        wdSrc       = 1'b0;
+        wdSrc       = 2'b00; // Новое значение
         aluControl  = `ALU_ADD;
+        jump        = 1'b0; // Значение для jump
 
         casez ({ cmdF7, cmdF3, cmdOp })
             { `RVF7_ADD,  `RVF3_ADD,  `RVOP_ADD  } : begin regWrite = 1'b1; aluControl = `ALU_ADD;  end
@@ -45,10 +47,16 @@ module sr_control
             { `RVF7_SUB,  `RVF3_SUB,  `RVOP_SUB  } : begin regWrite = 1'b1; aluControl = `ALU_SUB;  end
 
             { `RVF7_ANY,  `RVF3_ADDI, `RVOP_ADDI } : begin regWrite = 1'b1; aluSrc = 1'b1; aluControl = `ALU_ADD; end
-            { `RVF7_ANY,  `RVF3_ANY,  `RVOP_LUI  } : begin regWrite = 1'b1; wdSrc  = 1'b1; end
+            { `RVF7_ANY,  `RVF3_ANY,  `RVOP_LUI  } : begin regWrite = 1'b1; wdSrc  = 2'b01; end
 
             { `RVF7_ANY,  `RVF3_BEQ,  `RVOP_BEQ  } : begin branch = 1'b1; condZero = 1'b1; aluControl = `ALU_SUB; end
             { `RVF7_ANY,  `RVF3_BNE,  `RVOP_BNE  } : begin branch = 1'b1; aluControl = `ALU_SUB; end
+            // ЛОГИКА ДЛЯ ИНСТРУКЦИИ JAL (J)
+            { `RVF7_ANY,  `RVF3_ANY,  `RVOP_JAL  } : begin 
+                jump     = 1'b1;    // Сигнал безусловного перехода
+                regWrite = 1'b1;    // Записываем результат в регистр (даже если это x0)
+                wdSrc    = 2'b10;   // Мультиплексор источника: переключаем на PC + 4
+            end
         endcase
     end
 

@@ -1,15 +1,3 @@
-//
-//  schoolRISCV - small RISC-V CPU
-//
-//  Originally based on Sarah L. Harris MIPS CPU
-//  & schoolMIPS project.
-//
-//  Copyright (c) 2017-2020 Stanislav Zhelnio & Aleksandr Romanov.
-//
-//  Modified in 2024 by Yuri Panchul & Mike Kuskov
-//  for systemverilog-homework project.
-//
-
 `include "sr_cpu.svh"
 
 module sr_mdu
@@ -27,31 +15,29 @@ module sr_mdu
     output logic [31:0] result,
     output              busy
 );
+    logic [n_delay-1:0] vld_pipe;
+    logic [31:0]        res_pipe [0:n_delay-1];
 
-endmodule
+    assign busy = 1'b0; // Полностью конвейерный, никаких блокировок
 
-//----------------------------------------------------------------------------
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            vld_pipe <= '0;
+            for (int i = 0; i < n_delay; i++) res_pipe[i] <= '0;
+        end else begin
+            // 1-я стадия
+            vld_pipe[0] <= i_vld;
+            res_pipe[0] <= srcA * srcB;
 
-module shift_register
-# (
-    parameter width = 8, depth = 8
-)
-(
-    input                clk,
-    input  [width - 1:0] in_data,
-    output [width - 1:0] out_data
-);
-    logic [width - 1:0] data [0:depth - 1];
-
-    always_ff @ (posedge clk)
-    begin
-        data [0] <= in_data;
-
-        for (int i = 1; i < depth; i ++)
-            data [i] <= data [i - 1];
+            // N-е стадии
+            for (int i = 1; i < n_delay; i++) begin
+                vld_pipe[i] <= vld_pipe[i-1];
+                res_pipe[i] <= res_pipe[i-1];
+            end
+        end
     end
 
-    assign out_data = data [depth - 1];
+    assign o_vld  = vld_pipe[n_delay-1];
+    assign result = res_pipe[n_delay-1];
 
 endmodule
-
