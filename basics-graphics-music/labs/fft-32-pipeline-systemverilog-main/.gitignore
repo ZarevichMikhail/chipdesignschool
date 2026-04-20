@@ -1,0 +1,9 @@
+*.vcd
+*.log
+*.bin
+fft32_project/
+.Xil/*
+
+*.jou
+*.log
+*.str
